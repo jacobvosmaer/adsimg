@@ -7,10 +7,10 @@ struct floppy floppy;
 
 int main(void) {
   struct entry *t;
-  char *err;
+  char *error;
 
-  if (err = readfloppy(&floppy, stdin), err)
-    errx(-1, "read floppy: %s", err);
+  if (error = readfloppy(&floppy, stdin), error)
+    errx(-1, "read floppy: %s", error);
 
   for (t = floppy.toc; t < floppy.tocend; t++) {
     char *types[] = {"???", "mix", "snd", "sam"};
