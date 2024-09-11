@@ -1,39 +1,26 @@
 
 #include "adsimg.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
+#define nelem(x) (sizeof(x) / sizeof(*(x)))
+#define endof(x) ((x) + nelem(x))
+
 char *readfloppy(struct floppy *floppy, FILE *in) {
-  int datasize = 0, datacap = 0, tocsize;
   unsigned char *p;
+  struct entry *t;
 
-  while (!feof(stdin)) {
-    int n;
-    while (n = fread(floppy->data + datasize, 1, datacap - datasize, in), n > 0)
-      datasize += n;
-    if (ferror(stdin))
-      return "read in failed";
+  floppy->dataend =
+      floppy->data + fread(floppy->data, 1, sizeof(floppy->data), in);
+  if (ferror(in))
+    return "read in failed";
+  if (floppy->dataend == endof(floppy->data))
+    return "input file too large to be a floppy";
 
-    if (datasize == datacap) {
-      datacap = datacap ? 2 * datacap : 1;
-      if (floppy->data = realloc(floppy->data, datacap * sizeof(*floppy->data)),
-          !floppy->data)
-        return "realloc floppy->data failed";
-    }
-  }
-  floppy->dataend = floppy->data + datasize;
-
-  for (p = floppy->data + 0x200, tocsize = 0;
-       p < floppy->dataend - sizeof(floppy->toc->data) && p[10] != 0x7f;
-       p += sizeof(floppy->toc->data), tocsize++) {
-    struct entry *t;
-
-    if (floppy->toc =
-            realloc(floppy->toc, (tocsize + 1) * sizeof(*(floppy->toc))),
-        !floppy->toc)
-      return "realloc toc failed";
-    t = floppy->toc + tocsize;
+  for (p = floppy->data + 0x200, t = floppy->toc;
+       p < floppy->dataend - sizeof(floppy->toc->data) && p[10] != 0x7f &&
+       t < endof(floppy->toc);
+       p += sizeof(floppy->toc->data), t++) {
     memmove(t->data, p, sizeof(t->data));
     if (t > floppy->toc)
       t->offset = t[-1].offset + t[-1].len;
@@ -49,6 +36,6 @@ char *readfloppy(struct floppy *floppy, FILE *in) {
     else if (p[10] == 0x63)
       t->type = OT_SAMPLE;
   }
-  floppy->tocend = floppy->toc + tocsize;
+  floppy->tocend = t;
   return 0;
 }

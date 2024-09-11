@@ -4,9 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
+struct floppy floppy;
+
 int main(void) {
   struct entry *t;
-  struct floppy floppy = {0};
   int i;
   char *error = readfloppy(&floppy, stdin);
   if (error)

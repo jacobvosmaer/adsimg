@@ -3,9 +3,10 @@
 #include <err.h>
 #include <stdio.h>
 
+struct floppy floppy;
+
 int main(void) {
   struct entry *t;
-  struct floppy floppy = {0};
   char *err;
 
   if (err = readfloppy(&floppy, stdin), err)

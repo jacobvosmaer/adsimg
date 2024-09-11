@@ -11,12 +11,11 @@ struct entry {
 };
 
 struct floppy {
-  unsigned char *data, *dataend;
-  struct entry *toc, *tocend;
+  unsigned char data[1 << 21], *dataend;
+  struct entry toc[3 * 256], *tocend;
 };
 
-/* Readfloppy will allocate floppy->data and floppy->toc using malloc. On
- * success its return value is NULL. If non-null the return value is an error
+/* On success readfloppy returns NULL. If non-null the return value is an error
  * message. */
 char *readfloppy(struct floppy *floppy, FILE *in);
 
