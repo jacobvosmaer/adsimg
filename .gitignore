@@ -2,3 +2,4 @@
 *.wav
 toc
 *.dSYM/
+*.o
