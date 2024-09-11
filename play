@@ -1,7 +1,0 @@
-#!/bin/sh
-if [ $# != 1 ]; then
-  echo 'Usage: play SAMPLERATE' 1>&2
-  exit 1
-fi
-
- exec play  -c 1 -B -t s16 -r "$1" -
