@@ -11,11 +11,20 @@ void putle(unsigned x, int n, FILE *f) {
     fputc(x & 0xff, f);
 }
 
+struct iovec {
+  char *iov_base;
+  size_t iov_len;
+};
+
 /* Based on information from
  * https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html */
-void writewav(unsigned char *data, int n, FILE *f) {
-  int datasize = 8 + n, fmtsize = 8 + 16, wavesize = 4 + fmtsize + datasize,
-      samplerate = 44100, samplebits = 16;
+void writewav(const struct iovec *iov, int iovcnt, FILE *f) {
+  int datasize, fmtsize, wavesize, samplerate = 44100, samplebits = 16, i, n;
+  for (i = 0, n = 0; i < iovcnt; i++)
+    n += iov[i].iov_len;
+  datasize = 8 + n;
+  fmtsize = 8 + 16;
+  wavesize = 4 + fmtsize + datasize;
   fputs("RIFF", f);
   putle(wavesize, 4, f);
   fputs("WAVE", f);
@@ -31,9 +40,11 @@ void writewav(unsigned char *data, int n, FILE *f) {
   putle(n, 4, f);
   /* ADS sample data is big-endian so we must convert the 16-bit samples to
    * little-endian now. */
-  for (; n; n -= 2, data += 2) {
-    fputc(data[1], f);
-    fputc(data[0], f);
+  for (; iovcnt; iovcnt--, iov++) {
+    for (i = 0; i < iov->iov_len; i += 2) {
+      fputc(iov->iov_base[i + 1], f);
+      fputc(iov->iov_base[i], f);
+    }
   }
 }
 
@@ -71,6 +82,7 @@ int main(int argc, char **argv) {
       char *p, filename[18];
       FILE *f;
       enum { sampleheader = 512, sampletrailer = 512 };
+      struct iovec iov;
       if (t->type != OT_SAMPLE)
         continue;
       i++;
@@ -85,8 +97,9 @@ int main(int argc, char **argv) {
       }
       if (f = fopen(filename, "wb"), !f)
         err(-1, "fopen %s", filename);
-      writewav(fl->data + t->offset + sampleheader,
-               t->len - sampleheader - sampletrailer, f);
+      iov.iov_base = (char *)fl->data + t->offset + sampleheader;
+      iov.iov_len = t->len - sampleheader - sampletrailer;
+      writewav(&iov, 1, f);
       if (fclose(f))
         err(-1, "close %s", filename);
     }
