@@ -26,8 +26,6 @@ char *readfloppy(struct floppy *floppy, FILE *in) {
       t->offset = t[-1].offset + t[-1].len;
     else
       t->offset = 0x2e00;
-    if (memcmp(floppy->data + t->offset, p, 10))
-      return "name validation failed";
     t->len = (((int)p[13] << 8) + (int)p[14]) * 512;
     if (p[11] == 0x00)
       t->type = OT_MIX;
@@ -35,6 +33,9 @@ char *readfloppy(struct floppy *floppy, FILE *in) {
       t->type = OT_SOUND;
     else if (p[10] == 0x63)
       t->type = OT_SAMPLE;
+    if (!(t == floppy->toc && t->type == OT_SAMPLE) &&
+        memcmp(floppy->data + t->offset, p, 10))
+      return "name validation failed";
   }
   floppy->tocend = t;
   return 0;

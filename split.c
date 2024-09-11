@@ -13,7 +13,7 @@ int main(void) {
   if (error)
     errx(-1, "read floppy: %s", error);
   for (t = floppy.toc, i = 0; t < floppy.tocend; t++) {
-    char *p, filename[18], firstsample[] = "r. Disk operating system";
+    char *p, filename[18], headergarbage[] = "r. Disk operating system";
     FILE *f;
     int start, n;
     if (t->type != OT_SAMPLE)
@@ -31,9 +31,15 @@ int main(void) {
     }
     if (f = fopen(filename, "wb"), !f)
       err(-1, "fopen %s", filename);
-    start = 36;
-    if (!memcmp(floppy.data + t->offset + start, firstsample,
-                sizeof(firstsample) - 1))
+
+    /* If the first file on the disk is a sample it has no header. Otherwise,
+     * the file has a 36-byte header. */
+    start = t == floppy.toc ? 0 : 36;
+
+    /* Special case: sometimes the header contains 476 bytes of extra garbage
+     * before the sample data starts. */
+    if (!memcmp(floppy.data + t->offset + start, headergarbage,
+                sizeof(headergarbage) - 1))
       start += 476;
     n = t->len - start;
     if (fwrite(floppy.data + t->offset + start, 1, n, f) != n)
