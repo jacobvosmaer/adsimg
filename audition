@@ -2,4 +2,5 @@
 set -e
 rm -rf tmp
 mkdir tmp
-(cd tmp && ../split && play *.wav) < "$1"
+./split tmp "$@"
+play tmp/*.wav
