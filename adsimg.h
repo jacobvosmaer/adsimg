@@ -11,8 +11,14 @@ struct entry {
 };
 
 struct floppy {
-  unsigned char data[1 << 21], *dataend;
-  struct entry toc[3 * 256], *tocend;
+  unsigned char
+      data[1 << 21]; /* A floppy is at most 1.44 MB, i.e. less than 2MB */
+  unsigned char *dataend;
+  struct entry
+      toc[3 * 256]; /* I have seen 3 object types in the table of contents, each
+                       with an 8-bit index counter so the worst case table of
+                       contents size seems to be 3 * 256. */
+  struct entry *tocend;
 };
 
 /* On success readfloppy returns NULL. If non-null the return value is an error

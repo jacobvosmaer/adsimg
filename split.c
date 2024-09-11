@@ -29,6 +29,8 @@ void writewav(unsigned char *data, int n, FILE *f) {
   putle(samplebits, 2, f);                    /* bits per sample */
   fputs("data", f);
   putle(n, 4, f);
+  /* ADS sample data is big-endian so we must convert the 16-bit samples to
+   * little-endian now. */
   for (; n; n -= 2, data += 2) {
     fputc(data[1], f);
     fputc(data[0], f);
@@ -44,10 +46,9 @@ int main(void) {
   for (t = floppy.toc, i = 0; t < floppy.tocend; t++) {
     char *p, filename[18];
     FILE *f;
-    int start, n;
+    enum { pcmstart = 512 };
     if (t->type != OT_SAMPLE)
       continue;
-
     i++;
     if (snprintf(filename, sizeof(filename), "%02d-%10.10s.wav", i, t->data) !=
         sizeof(filename) - 1)
@@ -60,10 +61,7 @@ int main(void) {
     }
     if (f = fopen(filename, "wb"), !f)
       err(-1, "fopen %s", filename);
-
-    start = 512;
-    n = t->len - start;
-    writewav(floppy.data + t->offset + start, n, f);
+    writewav(floppy.data + t->offset + pcmstart, t->len - pcmstart, f);
     if (fclose(f))
       err(-1, "close %s", filename);
   }
