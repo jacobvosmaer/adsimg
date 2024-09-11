@@ -2,9 +2,4 @@
 set -e
 rm -rf tmp
 mkdir tmp
-cd tmp
-../split
-for s in *.s16; do
-  echo "--- $s"
-  ../play 44100 <"$s"
-done
+(cd tmp && ../split && play *.wav) < "$1"

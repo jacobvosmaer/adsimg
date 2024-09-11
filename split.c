@@ -6,6 +6,35 @@
 
 struct floppy floppy;
 
+void putle(unsigned x, int n, FILE *f) {
+  for (; n > 0; n--, x >>= 8)
+    fputc(x & 0xff, f);
+}
+
+/* Based on information from
+ * https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html */
+void writewav(unsigned char *data, int n, FILE *f) {
+  int datasize = 8 + n, fmtsize = 8 + 16, wavesize = 4 + fmtsize + datasize,
+      samplerate = 44100, samplebits = 16;
+  fputs("RIFF", f);
+  putle(wavesize, 4, f);
+  fputs("WAVE", f);
+  fputs("fmt ", f);
+  putle(fmtsize - 8, 4, f);                   /* fmt chunk size */
+  putle(1, 2, f);                             /* format 1 (PCM) */
+  putle(1, 2, f);                             /* 1 channel */
+  putle(samplerate, 4, f);                    /* sample rate 44.1kHz */
+  putle((samplerate * samplebits) / 8, 4, f); /* data rate bytes/s */
+  putle(samplebits / 8, 2, f);                /* bytes per sample */
+  putle(samplebits, 2, f);                    /* bits per sample */
+  fputs("data", f);
+  putle(n, 4, f);
+  for (; n; n -= 2, data += 2) {
+    fputc(data[1], f);
+    fputc(data[0], f);
+  }
+}
+
 int main(void) {
   struct entry *t;
   int i;
@@ -13,16 +42,16 @@ int main(void) {
   if (error)
     errx(-1, "read floppy: %s", error);
   for (t = floppy.toc, i = 0; t < floppy.tocend; t++) {
-    char *p, filename[18], headergarbage[] = "r. Disk operating system";
+    char *p, filename[18];
     FILE *f;
     int start, n;
     if (t->type != OT_SAMPLE)
       continue;
+
     i++;
-    if (snprintf(filename, sizeof(filename), "%02d-%10.10s.s16", i, t->data) !=
+    if (snprintf(filename, sizeof(filename), "%02d-%10.10s.wav", i, t->data) !=
         sizeof(filename) - 1)
       errx(-1, "filename size error");
-
     for (p = filename; *p; p++) {
       *p &= 0x7f;
       if (!((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') ||
@@ -32,18 +61,9 @@ int main(void) {
     if (f = fopen(filename, "wb"), !f)
       err(-1, "fopen %s", filename);
 
-    /* If the first file on the disk is a sample it has no header. Otherwise,
-     * the file has a 36-byte header. */
-    start = t == floppy.toc ? 0 : 36;
-
-    /* Special case: sometimes the header contains 476 bytes of extra garbage
-     * before the sample data starts. */
-    if (!memcmp(floppy.data + t->offset + start, headergarbage,
-                sizeof(headergarbage) - 1))
-      start += 476;
+    start = 512;
     n = t->len - start;
-    if (fwrite(floppy.data + t->offset + start, 1, n, f) != n)
-      err(-1, "write sample data to %s", filename);
+    writewav(floppy.data + t->offset + start, n, f);
     if (fclose(f))
       err(-1, "close %s", filename);
   }
