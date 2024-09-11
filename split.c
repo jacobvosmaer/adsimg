@@ -46,7 +46,7 @@ int main(void) {
   for (t = floppy.toc, i = 0; t < floppy.tocend; t++) {
     char *p, filename[18];
     FILE *f;
-    enum { pcmstart = 512 };
+    enum { sampleheader = 512, sampletrailer = 512 };
     if (t->type != OT_SAMPLE)
       continue;
     i++;
@@ -61,7 +61,8 @@ int main(void) {
     }
     if (f = fopen(filename, "wb"), !f)
       err(-1, "fopen %s", filename);
-    writewav(floppy.data + t->offset + pcmstart, t->len - pcmstart, f);
+    writewav(floppy.data + t->offset + sampleheader,
+             t->len - sampleheader - sampletrailer, f);
     if (fclose(f))
       err(-1, "close %s", filename);
   }
