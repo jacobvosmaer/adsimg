@@ -4,18 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *readfloppy(struct floppy *floppy) {
+char *readfloppy(struct floppy *floppy, FILE *in) {
   int datasize = 0, datacap = 0, tocsize;
   unsigned char *p;
-  struct entry *tt;
 
   while (!feof(stdin)) {
     int n;
-    while (n = fread(floppy->data + datasize, 1, datacap - datasize, stdin),
-           n > 0)
+    while (n = fread(floppy->data + datasize, 1, datacap - datasize, in), n > 0)
       datasize += n;
     if (ferror(stdin))
-      return "read stdin failed";
+      return "read in failed";
 
     if (datasize == datacap) {
       datacap = datacap ? 2 * datacap : 1;

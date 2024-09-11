@@ -8,7 +8,7 @@ int main(void) {
   struct floppy floppy = {0};
   char *err;
 
-  if (err = readfloppy(&floppy), err)
+  if (err = readfloppy(&floppy, stdin), err)
     errx(-1, "read floppy: %s", err);
 
   for (t = floppy.toc; t < floppy.tocend; t++) {
