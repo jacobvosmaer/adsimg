@@ -6,6 +6,12 @@
 #include <string.h>
 #include <unistd.h>
 
+#define nelem(x) (sizeof(x) / sizeof(*(x)))
+#define endof(x) ((x) + nelem(x))
+#define assert(x)                                                              \
+  if (!(x))                                                                    \
+  __builtin_trap()
+
 void putle(unsigned x, int n, FILE *f) {
   for (; n > 0; n--, x >>= 8)
     fputc(x & 0xff, f);
@@ -48,13 +54,42 @@ void writewav(const struct iovec *iov, int iovcnt, FILE *f) {
   }
 }
 
+void *Realloc(void *p, int count, int size) {
+  assert(count >= 0);
+  assert(size >= 0);
+  if (size)
+    assert(count < SIZE_MAX / size);
+  p = realloc(p, count * size);
+  assert(p);
+  return p;
+}
+
 struct floppy *floppy;
 int nfloppy;
+
+struct sample {
+  char desc[sizeof(floppy->toc->data)];
+  struct iovec *iov;
+  int iovcnt;
+} sample[256];
+int nsample;
+
+void sanitizefilename(char *filename) {
+  char *p;
+  for (p = filename; *p; p++) {
+    *p &= 0x7f;
+    if (!((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') ||
+          (*p >= '0' && *p <= '9') || *p == '-' || *p == '.'))
+      *p = '_';
+  }
+}
 
 int main(int argc, char **argv) {
   struct entry *t;
   struct floppy *fl;
-  int i, j;
+  int j;
+  struct sample *s;
+  FILE *f;
 
   if (argc < 3)
     errx(-1, "usage: split DIR DISK [DISK...]");
@@ -65,7 +100,7 @@ int main(int argc, char **argv) {
     errx(-1, "malloc");
   for (j = 0; j < nfloppy; j++) {
     char *error, *filename = argv[j + 2];
-    FILE *f = fopen(filename, "rb");
+    f = fopen(filename, "rb");
     if (!f)
       err(-1, "open %s", filename);
     error = readfloppy(floppy + j, f);
@@ -77,31 +112,34 @@ int main(int argc, char **argv) {
   if (chdir(argv[1]))
     err(-1, "chdir %s", argv[1]);
 
-  for (fl = floppy, i = 0; fl < floppy + nfloppy; fl++) {
+  for (fl = floppy, nsample = 0; fl < floppy + nfloppy; fl++) {
     for (t = fl->toc; t < fl->tocend; t++) {
-      char *p, filename[18];
-      FILE *f;
+      struct iovec *iov;
       enum { sampleheader = 512, sampletrailer = 512 };
-      struct iovec iov;
       if (t->type != OT_SAMPLE)
         continue;
-      i++;
-      if (snprintf(filename, sizeof(filename), "%02d-%10.10s.wav", i,
-                   t->data) != sizeof(filename) - 1)
-        errx(-1, "filename size error");
-      for (p = filename; *p; p++) {
-        *p &= 0x7f;
-        if (!((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') ||
-              (*p >= '0' && *p <= '9') || *p == '-' || *p == '.'))
-          *p = '_';
-      }
-      if (f = fopen(filename, "wb"), !f)
-        err(-1, "fopen %s", filename);
-      iov.iov_base = (char *)fl->data + t->offset + sampleheader;
-      iov.iov_len = t->len - sampleheader - sampletrailer;
-      writewav(&iov, 1, f);
-      if (fclose(f))
-        err(-1, "close %s", filename);
+      s = sample + nsample++;
+      assert(s < endof(sample));
+      memmove(s->desc, t->data, sizeof(s->desc));
+      s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
+      iov = s->iov + s->iovcnt - 1;
+      iov->iov_base = (char *)fl->data + t->offset + sampleheader;
+      iov->iov_len =
+          (char *)fl->data + t->offset + t->len - sampletrailer - iov->iov_base;
     }
+  }
+
+  for (s = sample; s < sample + nsample; s++) {
+    char filename[18];
+    int i = s - sample + 1;
+    if (snprintf(filename, sizeof(filename), "%02d-%10.10s.wav", i, s->desc) !=
+        sizeof(filename) - 1)
+      errx(-1, "filename size error");
+    sanitizefilename(filename);
+    if (f = fopen(filename, "wb"), !f)
+      err(-1, "fopen %s", filename);
+    writewav(s->iov, s->iovcnt, f);
+    if (fclose(f))
+      err(-1, "close %s", filename);
   }
 }
