@@ -6,6 +6,10 @@
 #define nelem(x) (sizeof(x) / sizeof(*(x)))
 #define endof(x) ((x) + nelem(x))
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 char *readfloppy(struct floppy *floppy, FILE *in) {
   unsigned char *p;
   struct entry *t;
@@ -34,7 +38,7 @@ char *readfloppy(struct floppy *floppy, FILE *in) {
     else if (p[10] == 0x63)
       t->type = OT_SAMPLE;
     if (!(t == floppy->toc && t->type == OT_SAMPLE) &&
-        memcmp(floppy->data + t->offset, p, 10))
+        memcmp(floppy->data + t->offset, p, 10) && DEBUG)
       return "name validation failed";
   }
   floppy->tocend = t;
