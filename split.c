@@ -115,23 +115,23 @@ int main(int argc, char **argv) {
   for (fl = floppy, nsample = 0; fl < floppy + nfloppy; fl++) {
     for (t = fl->toc; t < fl->tocend; t++) {
       struct iovec *iov;
-      enum { sampleheader = 512, sampletrailer = 512 };
+      enum { sampleheader = 512, sampletrailer = 512, sampleid = 11 };
+      char *chunkstart = (char *)fl->data + t->offset;
       int merge;
       if (t->type != OT_SAMPLE)
         continue;
       s = sample + nsample++;
       assert(s < endof(sample));
       memmove(s->desc, t->desc, sizeof(s->desc));
-      merge = s > sample && s[0].desc[11] == s[-1].desc[11];
+      merge = s > sample && s[0].desc[sampleid] == s[-1].desc[sampleid];
       if (merge) { /* don't create new sample */
         s--;
         nsample--;
       }
       s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
       iov = s->iov + s->iovcnt - 1;
-      iov->iov_base = (char *)fl->data + t->offset + sampleheader;
-      iov->iov_len =
-          (char *)fl->data + t->offset + t->len - sampletrailer - iov->iov_base;
+      iov->iov_base = chunkstart + sampleheader;
+      iov->iov_len = chunkstart + t->len - sampletrailer - iov->iov_base;
       if (merge) { /* previous chunk has no trailer and current has no header */
         assert(s->iovcnt > 1);
         iov[-1].iov_len += sampletrailer;
@@ -142,9 +142,8 @@ int main(int argc, char **argv) {
 
   for (s = sample; s < sample + nsample; s++) {
     char filename[18];
-    int i = s - sample + 1;
-    if (snprintf(filename, sizeof(filename), "%02d-%10.10s.wav", i, s->desc) !=
-        sizeof(filename) - 1)
+    if (snprintf(filename, sizeof(filename), "%02ld-%10.10s.wav",
+                 s - sample + 1, s->desc) != sizeof(filename) - 1)
       errx(-1, "filename size error");
     sanitizefilename(filename);
     if (f = fopen(filename, "wb"), !f)
