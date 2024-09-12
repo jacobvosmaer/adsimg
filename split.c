@@ -95,16 +95,13 @@ int main(int argc, char **argv) {
     errx(-1, "usage: split DIR DISK [DISK...]");
 
   nfloppy = argc - 2;
-  floppy = calloc(nfloppy, sizeof(*floppy));
-  if (!floppy)
+  if (floppy = calloc(nfloppy, sizeof(*floppy)), !floppy)
     errx(-1, "malloc");
   for (j = 0; j < nfloppy; j++) {
     char *error, *filename = argv[j + 2];
-    f = fopen(filename, "rb");
-    if (!f)
+    if (f = fopen(filename, "rb"), !f)
       err(-1, "open %s", filename);
-    error = readfloppy(floppy + j, f);
-    if (error)
+    if (error = readfloppy(floppy + j, f), error)
       errx(-1, "readfloppy: %s", error);
     fclose(f);
   }
