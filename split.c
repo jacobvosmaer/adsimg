@@ -116,16 +116,27 @@ int main(int argc, char **argv) {
     for (t = fl->toc; t < fl->tocend; t++) {
       struct iovec *iov;
       enum { sampleheader = 512, sampletrailer = 512 };
+      int merge;
       if (t->type != OT_SAMPLE)
         continue;
       s = sample + nsample++;
       assert(s < endof(sample));
       memmove(s->desc, t->data, sizeof(s->desc));
+      merge = s > sample && s[0].desc[11] == s[-1].desc[11];
+      if (merge) { /* don't create new sample */
+        s--;
+        nsample--;
+      }
       s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
       iov = s->iov + s->iovcnt - 1;
       iov->iov_base = (char *)fl->data + t->offset + sampleheader;
       iov->iov_len =
           (char *)fl->data + t->offset + t->len - sampletrailer - iov->iov_base;
+      if (merge) { /* previous chunk has no trailer and current has no header */
+        assert(s->iovcnt > 1);
+        iov[-1].iov_len += sampletrailer;
+        iov[0].iov_base -= sampleheader;
+      }
     }
   }
 
