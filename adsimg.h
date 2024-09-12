@@ -5,7 +5,7 @@
 
 enum objecttype { OT_UNKNOWN, OT_MIX, OT_SOUND, OT_SAMPLE };
 struct entry {
-  unsigned char data[16];
+  unsigned char desc[16];
   int offset, len;
   enum objecttype type;
 };

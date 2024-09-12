@@ -68,7 +68,7 @@ struct floppy *floppy;
 int nfloppy;
 
 struct sample {
-  char desc[sizeof(floppy->toc->data)];
+  char desc[sizeof(floppy->toc->desc)];
   struct iovec *iov;
   int iovcnt;
 } sample[256];
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
         continue;
       s = sample + nsample++;
       assert(s < endof(sample));
-      memmove(s->desc, t->data, sizeof(s->desc));
+      memmove(s->desc, t->desc, sizeof(s->desc));
       merge = s > sample && s[0].desc[11] == s[-1].desc[11];
       if (merge) { /* don't create new sample */
         s--;

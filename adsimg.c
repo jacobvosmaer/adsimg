@@ -18,10 +18,10 @@ char *readfloppy(struct floppy *floppy, FILE *in) {
     return "input file too large to be a floppy";
 
   for (p = floppy->data + 0x200, t = floppy->toc;
-       p < floppy->dataend - sizeof(floppy->toc->data) && p[10] != 0x7f &&
+       p < floppy->dataend - sizeof(floppy->toc->desc) && p[10] != 0x7f &&
        t < endof(floppy->toc);
-       p += sizeof(floppy->toc->data), t++) {
-    memmove(t->data, p, sizeof(t->data));
+       p += sizeof(floppy->toc->desc), t++) {
+    memmove(t->desc, p, sizeof(t->desc));
     if (t > floppy->toc)
       t->offset = t[-1].offset + t[-1].len;
     else
