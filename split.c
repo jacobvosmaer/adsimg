@@ -152,4 +152,5 @@ int main(int argc, char **argv) {
     if (fclose(f))
       err(-1, "close %s", filename);
   }
+  return 0;
 }
