@@ -114,10 +114,17 @@ int main(int argc, char **argv) {
     for (t = fl->toc; t < fl->toc + fl->ntoc; t++) {
       struct iovec *iov;
       enum { sampleheader = 512, sampletrailer = 512, sampleid = 11 };
-      char *chunkstart = (char *)fl->data + t->offset;
+      unsigned char *chunkstart = fl->data + t->offset,
+                    *chunkend = chunkstart + t->len;
       int merge;
       if (t->type != OT_SAMPLE)
         continue;
+      if (!(chunkstart >= fl->data && chunkstart <= chunkend &&
+            chunkend <= fl->data + fl->ndata)) {
+        fprintf(stderr, "warning: skiping entry with invalid bounds: %10.10s\n",
+                t->desc);
+        continue;
+      }
       s = sample + nsample++;
       assert(s < endof(sample));
       memmove(s->desc, t->desc, sizeof(s->desc));
@@ -128,8 +135,8 @@ int main(int argc, char **argv) {
       }
       s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
       iov = s->iov + s->iovcnt - 1;
-      iov->iov_base = chunkstart + sampleheader;
-      iov->iov_len = chunkstart + t->len - sampletrailer - iov->iov_base;
+      iov->iov_base = (char *)chunkstart + sampleheader;
+      iov->iov_len = (char *)chunkend - sampletrailer - iov->iov_base;
       if (merge) { /* previous chunk has no trailer and current has no header */
         assert(s->iovcnt > 1);
         iov[-1].iov_len += sampletrailer;
