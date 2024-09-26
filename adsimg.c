@@ -14,17 +14,16 @@ char *readfloppy(struct floppy *floppy, FILE *in) {
   unsigned char *p;
   struct entry *t;
 
-  floppy->dataend =
-      floppy->data + fread(floppy->data, 1, sizeof(floppy->data), in);
+  floppy->ndata = fread(floppy->data, 1, sizeof(floppy->data), in);
   if (ferror(in))
     return "read in failed";
-  if (floppy->dataend == endof(floppy->data))
+  if (floppy->ndata == sizeof(floppy->data))
     return "input file too large to be a floppy";
 
   for (p = floppy->data + 0x200, t = floppy->toc;
-       p < floppy->dataend - sizeof(floppy->toc->desc) && p[10] != 0x7f &&
+       p + sizeof(t->desc) < floppy->data + floppy->ndata && p[10] != 0x7f &&
        t < endof(floppy->toc);
-       p += sizeof(floppy->toc->desc), t++) {
+       p += sizeof(t->desc), t++) {
     memmove(t->desc, p, sizeof(t->desc));
     if (t > floppy->toc)
       t->offset = t[-1].offset + t[-1].len;
@@ -41,6 +40,6 @@ char *readfloppy(struct floppy *floppy, FILE *in) {
         memcmp(floppy->data + t->offset, p, 10) && DEBUG)
       return "name validation failed";
   }
-  floppy->tocend = t;
+  floppy->ntoc = t - floppy->toc;
   return 0;
 }

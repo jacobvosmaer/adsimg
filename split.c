@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
     err(-1, "chdir %s", argv[1]);
 
   for (fl = floppy, nsample = 0; fl < floppy + nfloppy; fl++) {
-    for (t = fl->toc; t < fl->tocend; t++) {
+    for (t = fl->toc; t < fl->toc + fl->ntoc; t++) {
       struct iovec *iov;
       enum { sampleheader = 512, sampletrailer = 512, sampleid = 11 };
       char *chunkstart = (char *)fl->data + t->offset;

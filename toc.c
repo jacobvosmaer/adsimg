@@ -12,7 +12,7 @@ int main(void) {
   if (error = readfloppy(&floppy, stdin), error)
     errx(-1, "read floppy: %s", error);
 
-  for (t = floppy.toc; t < floppy.tocend; t++) {
+  for (t = floppy.toc; t < floppy.toc + floppy.ntoc; t++) {
     char *types[] = {"???", "mix", "snd", "sam"};
     unsigned char *p = t->desc;
     printf("%s %c%9.9s", types[t->type], *p & 0x7f, p + 1);
