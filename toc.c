@@ -1,6 +1,6 @@
 
 #include "adsimg.h"
-#include <err.h>
+#include "err.h"
 #include <stdio.h>
 
 struct floppy floppy;
