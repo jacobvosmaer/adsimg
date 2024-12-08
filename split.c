@@ -25,8 +25,8 @@ struct iovec {
 
 /* Based on information from
  * https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html */
-void writewav(const struct iovec *iov, int iovcnt, FILE *f) {
-  int datasize, fmtsize, wavesize, samplerate = 44100, samplebits = 16, i, n;
+void writewav(const struct iovec *iov, int iovcnt, int samplerate, FILE *f) {
+  int datasize, fmtsize, wavesize, samplebits = 16, i, n;
   for (i = 0, n = 0; i < iovcnt; i++)
     n += iov[i].iov_len;
   datasize = 8 + n;
@@ -36,10 +36,10 @@ void writewav(const struct iovec *iov, int iovcnt, FILE *f) {
   putle(wavesize, 4, f);
   fputs("WAVE", f);
   fputs("fmt ", f);
-  putle(fmtsize - 8, 4, f);                   /* fmt chunk size */
-  putle(1, 2, f);                             /* format 1 (PCM) */
-  putle(1, 2, f);                             /* 1 channel */
-  putle(samplerate, 4, f);                    /* sample rate 44.1kHz */
+  putle(fmtsize - 8, 4, f); /* fmt chunk size */
+  putle(1, 2, f);           /* format 1 (PCM) */
+  putle(1, 2, f);           /* 1 channel */
+  putle(samplerate, 4, f);
   putle((samplerate * samplebits) / 8, 4, f); /* data rate bytes/s */
   putle(samplebits / 8, 2, f);                /* bytes per sample */
   putle(samplebits, 2, f);                    /* bits per sample */
@@ -72,6 +72,7 @@ struct sample {
   char desc[sizeof(floppy->toc->desc)];
   struct iovec *iov;
   int iovcnt;
+  int samplerate;
 } sample[256];
 int nsample;
 
@@ -132,6 +133,8 @@ int main(int argc, char **argv) {
       if (merge) { /* don't create new sample */
         s--;
         nsample--;
+      } else {
+        s->samplerate = (chunkstart[14] & 0x30) == 0x30 ? 44100 : 22050;
       }
       s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
       iov = s->iov + s->iovcnt - 1;
@@ -153,7 +156,7 @@ int main(int argc, char **argv) {
     sanitizefilename(filename);
     if (f = fopen(filename, "wb"), !f)
       err(-1, "fopen %s", filename);
-    writewav(s->iov, s->iovcnt, f);
+    writewav(s->iov, s->iovcnt, s->samplerate, f);
     if (fclose(f))
       err(-1, "close %s", filename);
   }
