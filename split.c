@@ -129,12 +129,11 @@ int main(int argc, char **argv) {
       s = sample + nsample++;
       assert(s < endof(sample));
       memmove(s->desc, t->desc, sizeof(s->desc));
+      s->samplerate = (chunkstart[14] & 0x30) == 0x30 ? 44100 : 22050;
       merge = s > sample && s[0].desc[sampleid] == s[-1].desc[sampleid];
       if (merge) { /* don't create new sample */
         s--;
         nsample--;
-      } else {
-        s->samplerate = (chunkstart[14] & 0x30) == 0x30 ? 44100 : 22050;
       }
       s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
       iov = s->iov + s->iovcnt - 1;
