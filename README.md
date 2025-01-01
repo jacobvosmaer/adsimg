@@ -38,4 +38,9 @@ Linux too. I have not tried Windows.
 
 ## Bugs
 
-No extraction of sample metadata such as loop points and initial pitch. I also think the endings of the samples are wrong now. Samples are sometimes truncated a little before the ending.
+No extraction of sample metadata such as loop points and initial pitch.
+
+I am not quite sure about how we detect the end of samples. The
+current code ends most samples on a zero crossing which would suggest
+we got it right but some samples end mid-cycle. But then maybe those
+have a release loop?

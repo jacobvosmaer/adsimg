@@ -72,7 +72,8 @@ struct sample {
   char desc[sizeof(floppy->toc->desc)];
   struct iovec *iov;
   int iovcnt;
-  int samplerate;
+  int samplerate; /* sample rate in samples/s */
+  int len;        /* sample data remaining in bytes */
 } sample[256];
 int nsample;
 
@@ -114,7 +115,7 @@ int main(int argc, char **argv) {
   for (fl = floppy, nsample = 0; fl < floppy + nfloppy; fl++) {
     for (t = fl->toc; t < fl->toc + fl->ntoc; t++) {
       struct iovec *iov;
-      enum { sampleheader = 512, sampletrailer = 512, sampleid = 11 };
+      enum { sampleheader = 512, sampleid = 11 };
       unsigned char *chunkstart = fl->data + t->offset,
                     *chunkend = chunkstart + t->len;
       int merge;
@@ -130,6 +131,10 @@ int main(int argc, char **argv) {
       assert(s < endof(sample));
       memmove(s->desc, t->desc, sizeof(s->desc));
       s->samplerate = chunkstart[14] >> 4 == 0x3 ? 44100 : 22050;
+      /* The header tells us the sample size in 16-bit samples. For our
+       * calculation we care about the size in bytes so we multiply by 2. */
+      s->len = 2 * (((int)chunkstart[20] << 16) + ((int)chunkstart[18] << 8) +
+                    ((int)chunkstart[19] << 0));
       merge = s > sample && s[0].desc[sampleid] == s[-1].desc[sampleid];
       if (merge) { /* don't create new sample */
         s--;
@@ -137,13 +142,11 @@ int main(int argc, char **argv) {
       }
       s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
       iov = s->iov + s->iovcnt - 1;
-      iov->iov_base = (char *)chunkstart + sampleheader;
-      iov->iov_len = (char *)chunkend - sampletrailer - iov->iov_base;
-      if (merge) { /* previous chunk has no trailer and current has no header */
-        assert(s->iovcnt > 1);
-        iov[-1].iov_len += sampletrailer;
-        iov[0].iov_base -= sampleheader;
-      }
+      iov->iov_base = (char *)chunkstart + (merge ? 0 : sampleheader);
+      iov->iov_len = (char *)chunkend - iov->iov_base;
+      if (s->len < iov->iov_len)
+        iov->iov_len = s->len;
+      s->len -= iov->iov_len;
     }
   }
 
