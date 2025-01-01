@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 
   for (fl = floppy, nsample = 0; fl < floppy + nfloppy; fl++) {
     for (t = fl->toc; t < fl->toc + fl->ntoc; t++) {
-      struct iovec *iov;
+      struct iovec *newiov;
       enum { sampleheader = 512, sampleid = 11 };
       unsigned char *chunkstart = fl->data + t->offset,
                     *chunkend = chunkstart + t->len;
@@ -141,12 +141,12 @@ int main(int argc, char **argv) {
         nsample--;
       }
       s->iov = Realloc(s->iov, ++(s->iovcnt), sizeof(*(s->iov)));
-      iov = s->iov + s->iovcnt - 1;
-      iov->iov_base = (char *)chunkstart + (merge ? 0 : sampleheader);
-      iov->iov_len = (char *)chunkend - iov->iov_base;
-      if (s->len < iov->iov_len)
-        iov->iov_len = s->len;
-      s->len -= iov->iov_len;
+      newiov = s->iov + s->iovcnt - 1;
+      newiov->iov_base = (char *)chunkstart + (merge ? 0 : sampleheader);
+      newiov->iov_len = (char *)chunkend - newiov->iov_base;
+      if (s->len < newiov->iov_len)
+        newiov->iov_len = s->len;
+      s->len -= newiov->iov_len;
     }
   }
 
