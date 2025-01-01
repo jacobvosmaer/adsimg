@@ -35,3 +35,7 @@ To compile the software you need a C compiler. There is a Makefile but
 you don't have to use it, `cc -o split split.c adsimg.c` suffices. I
 have developed these programs on macOS and they should compile on
 Linux too. I have not tried Windows.
+
+## Bugs
+
+No extraction of sample metadata such as loop points and initial pitch. I also think the endings of the samples are wrong now. Samples are sometimes truncated a little before the ending.
