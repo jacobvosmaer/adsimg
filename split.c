@@ -73,7 +73,8 @@ struct sample {
   struct iovec *iov;
   int iovcnt;
   int samplerate; /* sample rate in samples/s */
-  int len;        /* sample data remaining in bytes */
+  int len; /* sample data remaining in bytes. Used for bookkeeping while parsing
+              floppy, should be 0 when done. */
 } sample[256];
 int nsample;
 
@@ -152,6 +153,11 @@ int main(int argc, char **argv) {
 
   for (s = sample; s < sample + nsample; s++) {
     char filename[18];
+    if (s->len) {
+      fprintf(stderr, "missing sample data for sample %10.10s, skipping\n",
+              s->desc);
+      continue;
+    }
     if (snprintf(filename, sizeof(filename), "%02ld-%10.10s.wav",
                  s - sample + 1, s->desc) != sizeof(filename) - 1)
       errx(-1, "filename size error");
