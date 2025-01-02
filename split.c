@@ -26,12 +26,17 @@ struct iovec {
 /* Based on information from
  * https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html */
 void writewav(const struct iovec *iov, int iovcnt, int samplerate, FILE *f) {
-  int datasize, fmtsize, wavesize, samplebits = 16, i, n;
-  for (i = 0, n = 0; i < iovcnt; i++)
+  int samplebits = 16, i;
+  int64_t datasize, fmtsize, wavesize, n;
+  for (i = 0, n = 0; i < iovcnt; i++) {
+    assert(iov[i].iov_len <= UINT32_MAX - n);
     n += iov[i].iov_len;
+  }
+  assert(n <= UINT32_MAX);
   datasize = 8 + n;
   fmtsize = 8 + 16;
   wavesize = 4 + fmtsize + datasize;
+  assert(wavesize <= UINT32_MAX);
   fputs("RIFF", f);
   putle(wavesize, 4, f);
   fputs("WAVE", f);
