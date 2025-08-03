@@ -3,6 +3,16 @@
 This repository contains programs to work with Dynacord ADS sample
 disks (also related instruments like ADD Two).
 
+## What's a Dynacord?
+
+The Dynacord ADS is a rackmount sampler from 1990. Someone digitized a
+collection of floppy disk imagess with sounds made for the ADS on
+sequencer.de and I got curious if I could extract the sound files from
+the floppy disk images. You can read more about this project
+[here](https://blog.jacobvosmaer.nl/tags/dynacord-ads.html).
+
+## How do I use this
+
 Compile the software with `make`. Use `toc < DISK_IMAGE` to list the
 contents of a disk image. Use `split DIR IMAGE1 [IMAGE2 IMAGE3 ...]`
 to extract samples from a series of disk images as WAV files. This
